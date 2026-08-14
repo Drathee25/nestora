@@ -18,6 +18,7 @@ export default function BuildingScrollSection() {
   // Lerped currentTime: current is the displayed value, target is where scroll wants to be
   const videoStateRef = useRef({ current: 0, target: 0 });
   const [activeStop, setActiveStop] = useState(0);
+  const [videoReady, setVideoReady] = useState(false);
 
   // Compute scroll progress fresh from the DOM — no stale cache
   const getProgress = useCallback(() => {
@@ -65,14 +66,20 @@ export default function BuildingScrollSection() {
     <section ref={wrapperRef} className="relative" style={{ height: `${SECTION_HEIGHT_VH}vh` }}>
       <div className="sticky top-0 h-screen overflow-hidden bg-[#1f4d36]">
         <div className="absolute inset-0" style={{ transform: 'translateZ(0)' }}>
+          <img
+            src="/hero-poster.jpg"
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+          />
           <video
             ref={videoRef}
             src="/hero.mp4"
             muted
             playsInline
             preload="auto"
-            className="w-full h-full object-cover"
-            style={{ willChange: 'contents' }}
+            onLoadedData={() => setVideoReady(true)}
+            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-out"
+            style={{ willChange: 'contents, opacity', opacity: videoReady ? 1 : 0 }}
           />
         </div>
 
