@@ -4,12 +4,18 @@ import { useLenisScroll } from '../lib/LenisContext';
 // Recreates lenis.dev's "Enter Lenis" intro, adapted so the "text" is filled
 // with the building photo: a fixed, never-transformed photo sits behind a
 // black layer with a "NESTORA" -shaped hole cut out of it (an SVG mask). As
-// the user scrolls, only that hole — pure vector, so it stays perfectly
-// crisp at any zoom — scales up around the "T", widening the window onto the
-// untouched photo beneath. The photo itself never scales, so it never blurs.
+// the user scrolls, that hole scales up around the "T", widening the window
+// onto the untouched photo beneath. The photo itself never scales, so it
+// never blurs.
 //
-// Scale is driven straight off Lenis scroll ticks — no easing/lerp — since
-// the zoom should track scroll exactly, not feel smoothed after it.
+// The zoom is done by shrinking the SVG's `viewBox` rather than a CSS
+// `transform: scale()`. A CSS transform on an SVG element gets composited by
+// rasterizing the element once and stretching that texture for the
+// animation — which blurs vector content just like a bitmap at high zoom
+// factors. Changing `viewBox` instead makes the browser genuinely re-render
+// the mask and text at the new zoom level every frame, so it stays crisp at
+// any scale. Driven straight off Lenis scroll ticks, no easing/lerp, so the
+// zoom tracks scroll exactly rather than feeling smoothed after it.
 
 const SECTION_HEIGHT_VH = 300;
 const MAX_SCALE = 16;
@@ -22,7 +28,6 @@ export default function EnterNestoraSection() {
   const wrapperRef = useRef(null);
   const svgRef = useRef(null);
   const tSpanRef = useRef(null);
-  const overlayRef = useRef(null);
   const captionRef = useRef(null);
   const originRef = useRef({ x: 0, y: 0 });
 
@@ -44,9 +49,6 @@ export default function EnterNestoraSection() {
     if (!t) return;
     const box = t.getBBox();
     originRef.current = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
-    if (svgRef.current) {
-      svgRef.current.style.transformOrigin = `${originRef.current.x}px ${originRef.current.y}px`;
-    }
   }, [dims]);
 
   const handleScroll = () => {
@@ -58,7 +60,13 @@ export default function EnterNestoraSection() {
 
     if (svgRef.current) {
       const scale = 1 + progress * (MAX_SCALE - 1);
-      svgRef.current.style.transform = `scale(${scale})`;
+      const { x: originX, y: originY } = originRef.current;
+      const visibleW = dims.width / scale;
+      const visibleH = dims.height / scale;
+      svgRef.current.setAttribute(
+        'viewBox',
+        `${originX - visibleW / 2} ${originY - visibleH / 2} ${visibleW} ${visibleH}`
+      );
       const fadeT = Math.min(1, Math.max(0, (progress - OVERLAY_FADE_START) / (1 - OVERLAY_FADE_START)));
       svgRef.current.style.opacity = 1 - fadeT;
     }
@@ -85,22 +93,22 @@ export default function EnterNestoraSection() {
           className="absolute inset-0 w-full h-full object-cover"
         />
 
-        {/* Black layer with a NESTORA-shaped hole, cut via SVG mask. Only
-            this (vector) layer scales, revealing more of the crisp photo
-            beneath as it zooms into the T. */}
+        {/* Black layer with a NESTORA-shaped hole, cut via SVG mask. Zoom is
+            done via viewBox (not a CSS transform) so the vector content is
+            genuinely re-rendered crisp at every zoom level. */}
         <svg
           ref={svgRef}
           width={dims.width}
           height={dims.height}
           viewBox={`0 0 ${dims.width} ${dims.height}`}
           className="absolute inset-0"
-          style={{ willChange: 'transform, opacity' }}
+          style={{ willChange: 'opacity' }}
         >
           <mask id="nestora-cutout" maskUnits="userSpaceOnUse">
             <rect x="0" y="0" width={dims.width} height={dims.height} fill="white" />
             <text
-              x="50%"
-              y="50%"
+              x={dims.width / 2}
+              y={dims.height / 2}
               textAnchor="middle"
               dominantBaseline="central"
               fontFamily="'Manrope', system-ui, sans-serif"
