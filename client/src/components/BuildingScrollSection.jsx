@@ -2,15 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useLenisScroll } from '../lib/LenisContext';
-import HeroIllustration from './graphics/HeroIllustration';
 import { STOP_ICONS } from './graphics/StopIcons';
 
 const stops = [
-  { at: 0, align: 'left', isHero: true },
-  { at: 0.2, align: 'right', num: '01', title: 'Premium Interiors', body: 'Light-filled floors, balconies on every home, and finishes built to last generations.' },
-  { at: 0.4, align: 'left', num: '02', title: 'Landscaped Grounds', body: 'Courtyards, paved walkways, and greenery around every tower — designed for everyday life, not just the lobby.' },
-  { at: 0.6, align: 'right', num: '03', title: 'Prime Locations', body: 'Walk to metro, markets, and parks in every neighbourhood we list across the capital.' },
-  { at: 0.8, align: 'left', num: '04', title: 'Verified & Transparent', body: 'RERA-registered projects, clear legal titles, and transparent pricing — invest with complete peace of mind.' },
+  { at: 0, align: 'left', isHero: true, photo: '/hero/scene-0.webp' },
+  { at: 0.2, align: 'right', num: '01', title: 'Premium Interiors', body: 'Light-filled floors, balconies on every home, and finishes built to last generations.', photo: '/hero/scene-1.webp' },
+  { at: 0.4, align: 'left', num: '02', title: 'Landscaped Grounds', body: 'Courtyards, paved walkways, and greenery around every tower — designed for everyday life, not just the lobby.', photo: '/hero/scene-2.webp' },
+  { at: 0.6, align: 'right', num: '03', title: 'Prime Locations', body: 'Walk to metro, markets, and parks in every neighbourhood we list across the capital.', photo: '/hero/scene-3.webp' },
+  { at: 0.8, align: 'left', num: '04', title: 'Verified & Transparent', body: 'RERA-registered projects, clear legal titles, and transparent pricing — invest with complete peace of mind.', photo: '/hero/scene-4.webp' },
 ];
 
 const SECTION_HEIGHT_VH = 450;
@@ -53,7 +52,22 @@ export default function BuildingScrollSection() {
   return (
     <section ref={wrapperRef} className="relative" style={{ height: `${SECTION_HEIGHT_VH}vh` }}>
       <div className="sticky top-0 h-screen overflow-hidden bg-[#1f4d36]">
-        <HeroIllustration />
+        <div className="absolute inset-0">
+          {stops.map((s, i) => (
+            <img
+              key={s.photo}
+              src={s.photo}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-out"
+              style={{
+                opacity: activeStop === i ? 1 : 0,
+                transform: 'scale(calc(1 + var(--progress, 0) * 0.08))',
+                transitionProperty: 'opacity, transform',
+                transitionDuration: '700ms, 300ms',
+              }}
+            />
+          ))}
+        </div>
 
         <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-[#12281c]/75 via-[#12281c]/25 to-[#12281c]/80" />
 
