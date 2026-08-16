@@ -63,10 +63,16 @@ export default function EnterNestoraSection() {
       const { x: originX, y: originY } = originRef.current;
       const visibleW = dims.width / scale;
       const visibleH = dims.height / scale;
-      svgRef.current.setAttribute(
-        'viewBox',
-        `${originX - visibleW / 2} ${originY - visibleH / 2} ${visibleW} ${visibleH}`
-      );
+      // Keep the origin point (the T) at the same screen position it holds
+      // at rest, rather than always centering the viewBox on it — the T
+      // isn't exactly centered in "NESTORA" (4th of 7 letters), so a pure
+      // "always centered on the T" viewBox is offset from 0,0 even at
+      // scale=1, leaving a gap of unmasked photo down one edge. This
+      // formula gives minX=0/minY=0 exactly at scale=1 and only converges
+      // toward centering on the T as scale grows.
+      const minX = originX * (1 - 1 / scale);
+      const minY = originY * (1 - 1 / scale);
+      svgRef.current.setAttribute('viewBox', `${minX} ${minY} ${visibleW} ${visibleH}`);
       const fadeT = Math.min(1, Math.max(0, (progress - OVERLAY_FADE_START) / (1 - OVERLAY_FADE_START)));
       svgRef.current.style.opacity = 1 - fadeT;
     }
