@@ -12,8 +12,6 @@
   "dependencies": {
     "@netlify/blobs": "^10.7.9",
     "@netlify/database": "^1.1.0",
-    "@react-three/drei": "^10.7.7",
-    "@react-three/fiber": "^9.6.1",
     "axios": "^1.18.1",
     "bcryptjs": "^3.0.3",
     "framer-motion": "^12.42.1",
@@ -23,8 +21,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-leaflet": "^5.0.0",
-    "react-router-dom": "^7.18.1",
-    "three": "^0.185.0"
+    "react-router-dom": "^7.18.1"
   },
   "devDependencies": {
     "@netlify/vite-plugin": "^2.12.8",

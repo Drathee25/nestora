@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useLenisScroll } from '../lib/LenisContext';
+import HeroIllustration from './graphics/HeroIllustration';
+import { STOP_ICONS } from './graphics/StopIcons';
 
 const stops = [
   { at: 0, align: 'left', isHero: true },
@@ -14,74 +17,43 @@ const SECTION_HEIGHT_VH = 450;
 
 export default function BuildingScrollSection() {
   const wrapperRef = useRef(null);
-  const videoRef = useRef(null);
-  // Lerped currentTime: current is the displayed value, target is where scroll wants to be
-  const videoStateRef = useRef({ current: 0, target: 0 });
   const [activeStop, setActiveStop] = useState(0);
-  const [videoReady, setVideoReady] = useState(false);
 
-  // Compute scroll progress fresh from the DOM — no stale cache
-  const getProgress = useCallback(() => {
+  // Driven by Lenis's own scroll ticks — no separate RAF loop. Progress
+  // (0-1 through this pinned section) is written straight to a CSS custom
+  // property; the illustration layers pick it up via calc() + their own
+  // `transition`, so smoothing is handled by CSS, not JS.
+  const handleScroll = useCallback(() => {
     const el = wrapperRef.current;
-    if (!el) return 0;
+    if (!el) return;
+
     const rect = el.getBoundingClientRect();
     const scrollable = rect.height - window.innerHeight;
-    if (scrollable <= 0) return 0;
-    return Math.min(1, Math.max(0, -rect.top / scrollable));
+    const progress = scrollable > 0 ? Math.min(1, Math.max(0, -rect.top / scrollable)) : 0;
+
+    el.style.setProperty('--progress', progress);
+
+    const idx = [...stops].reverse().findIndex((s) => progress >= s.at);
+    const resolved = idx === -1 ? 0 : stops.length - 1 - idx;
+    setActiveStop((prev) => (prev === resolved ? prev : resolved));
   }, []);
 
-  // RAF loop: drives video currentTime with lerp + updates carousel + active stop
+  useLenisScroll(handleScroll);
+
+  // Lenis's 'scroll' event only fires while actively scrolling — run once on
+  // mount so state is correct immediately (e.g. landing here mid-scroll via
+  // client-side navigation) instead of waiting for the first scroll input.
   useEffect(() => {
-    const state = videoStateRef.current;
-    let rafId;
-
-    function tick() {
-      rafId = requestAnimationFrame(tick);
-
-      const progress = getProgress();
-
-      // Update active stop (cheap integer compare avoids re-renders)
-      const idx = [...stops].reverse().findIndex((s) => progress >= s.at);
-      const resolved = idx === -1 ? 0 : stops.length - 1 - idx;
-      setActiveStop((prev) => (prev === resolved ? prev : resolved));
-
-      // Video scrub with lerp — slightly snappier catch-up than before
-      const vid = videoRef.current;
-      if (vid && vid.duration) {
-        state.target = progress * vid.duration;
-        state.current += (state.target - state.current) * 0.2;
-        if (Math.abs(vid.currentTime - state.current) > 0.01) {
-          vid.currentTime = state.current;
-        }
-      }
-    }
-
-    rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
-  }, [getProgress]);
+    handleScroll();
+  }, [handleScroll]);
 
   const isHero = activeStop === 0;
+  const StopIcon = !isHero ? STOP_ICONS[stops[activeStop].num] : null;
 
   return (
     <section ref={wrapperRef} className="relative" style={{ height: `${SECTION_HEIGHT_VH}vh` }}>
       <div className="sticky top-0 h-screen overflow-hidden bg-[#1f4d36]">
-        <div className="absolute inset-0" style={{ transform: 'translateZ(0)' }}>
-          <img
-            src="/hero-poster.jpg"
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-          <video
-            ref={videoRef}
-            src="/hero.mp4"
-            muted
-            playsInline
-            preload="auto"
-            onLoadedData={() => setVideoReady(true)}
-            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-out"
-            style={{ willChange: 'contents, opacity', opacity: videoReady ? 1 : 0 }}
-          />
-        </div>
+        <HeroIllustration />
 
         <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-[#12281c]/75 via-[#12281c]/25 to-[#12281c]/80" />
 
@@ -157,7 +129,19 @@ export default function BuildingScrollSection() {
                       transition={{ duration: 0.6, ease: 'easeOut' }}
                       style={{ willChange: 'transform, opacity' }}
                     >
-                      <span className="font-display text-sm text-[#d97f2e]">{s.num}</span>
+                      <div className={`flex items-center gap-3 ${s.align === 'right' ? 'justify-end' : 'justify-start'}`}>
+                        {StopIcon && (
+                          <motion.span
+                            initial={{ opacity: 0, scale: 0.7 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.5, delay: 0.1 }}
+                            className="text-[#d97f2e]"
+                          >
+                            <StopIcon />
+                          </motion.span>
+                        )}
+                        <span className="font-display text-sm text-[#d97f2e]">{s.num}</span>
+                      </div>
                       <h3 className="font-display text-5xl md:text-7xl text-[#faf3e7] mt-2">
                         {s.title}
                       </h3>
